@@ -7,17 +7,26 @@
 #include <unordered_map>
 #include <vector>
 #include <initializer_list>
+#include <functional>
 
 template <typename T>
-class ValueGetter {
+class ValueAccessor {
 public:
-    virtual ~ValueGetter() = default;
+    virtual ~ValueAccessor() = default;
 
-    virtual auto get_value() const -> T = 0;
-    virtual auto get_value_ref() -> T& = 0;
+    virtual auto access(std::function<void(T&)>) -> void = 0;
 
 protected:
-    ValueGetter() = default;
+    ValueAccessor() = default;
+};
+
+enum class JsonValueType {
+    JsonBool,
+    JsonNumber,
+    JsonString,
+    JsonObject,
+    JsonArray,
+    JsonNull,
 };
 
 class JsonValue {
@@ -26,22 +35,43 @@ public:
 
     virtual auto serialize() const -> std::string = 0;
 
+    virtual auto get_type() const -> JsonValueType = 0;
+
 protected:
     JsonValue() = default;
 };
 
-class JsonNumber : public JsonValue {
+class JsonBool : public JsonValue, ValueAccessor<bool> {
 public:
-    JsonNumber(double value)
-        : m_value(value) {}
+    JsonBool(bool boolean)
+        : m_boolean(boolean) {}
 
     virtual auto serialize() const -> std::string override;
 
+    virtual auto get_type() const -> JsonValueType override;
+
+    virtual auto access(std::function<void(bool&)>) -> void override;
+
 private:
-    double m_value;
+    bool m_boolean;
 };
 
-class JsonString : public JsonValue {
+class JsonNumber : public JsonValue, ValueAccessor<double> {
+public:
+    JsonNumber(double number)
+        : m_number(number) {}
+
+    virtual auto serialize() const -> std::string override;
+
+    virtual auto get_type() const -> JsonValueType override;
+
+    virtual auto access(std::function<void(double&)>) -> void override;
+
+private:
+    double m_number;
+};
+
+class JsonString : public JsonValue, ValueAccessor<std::string> {
 public:
     JsonString(std::string string)
         : m_string(std::move(string)) {}
@@ -51,11 +81,17 @@ public:
 
     virtual auto serialize() const -> std::string override;
 
+    virtual auto get_type() const -> JsonValueType override;
+
+    virtual auto access(std::function<void(std::string&)>) -> void override;
+
 private:
     std::string m_string;
 };
 
-class JsonObject : public JsonValue {
+using JsonObjectDict = std::unordered_map<std::string, std::shared_ptr<JsonValue>>;
+
+class JsonObject : public JsonValue, ValueAccessor<JsonObjectDict> {
 public:
     JsonObject(std::initializer_list<std::tuple<const char*, std::shared_ptr<JsonValue>>> list) {
         for (const auto& [key, value] : list)
@@ -67,11 +103,17 @@ public:
 
     virtual auto serialize() const -> std::string override;
 
+    virtual auto get_type() const -> JsonValueType override;
+
+    virtual auto access(std::function<void(JsonObjectDict&)>) -> void override;
+
 private:
-    std::unordered_map<std::string, std::shared_ptr<JsonValue>> m_dict;
+    JsonObjectDict m_dict;
 };
 
-class JsonArray : public JsonValue {
+using JsonArrayElements = std::vector<std::shared_ptr<JsonValue>>;
+
+class JsonArray : public JsonValue, ValueAccessor<JsonArrayElements> {
 public:
     JsonArray(std::initializer_list<std::shared_ptr<JsonValue>> list) {
         for (const auto& elem : list)
@@ -83,11 +125,27 @@ public:
 
     virtual auto serialize() const -> std::string override;
 
+    virtual auto get_type() const -> JsonValueType override;
+
+    virtual auto access(std::function<void(JsonArrayElements&)>) -> void override;
+
 private:
-    std::vector<std::shared_ptr<JsonValue>> m_array;
+    JsonArrayElements m_array;
 };
 
-template <typename T, typename Args, typename = std::enable_if_t<std::is_base_of_v<JsonValue, T>>>
-auto make_json_value(Args&& args) -> std::shared_ptr<T> {
-    return std::make_shared<T>(std::forward<Args>(args));
+class JsonNull : public JsonValue {
+public:
+    virtual auto serialize() const -> std::string override;
+
+    virtual auto get_type() const -> JsonValueType override;
+};
+
+template <typename T, typename ... Args, typename = std::enable_if_t<std::is_base_of_v<JsonValue, T>>>
+auto make_json_value(Args&& ... args) -> std::shared_ptr<T> {
+    return std::make_shared<T>(std::forward<Args>(args)...);
+}
+
+template <typename T, typename = std::enable_if_t<std::is_base_of_v<JsonValue, T>>>
+auto cast_json_value(std::shared_ptr<JsonValue> value) -> T* {
+    return dynamic_cast<T*>(value.get());
 }
