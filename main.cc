@@ -1,37 +1,34 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
-#include "jsonval.h"
+#include "parser.h"
 
 auto main() -> int {
-    auto object = JsonObject {
-        { "true", make_json_value<JsonBool>(true) },
-        { "false", make_json_value<JsonBool>(false) },
-        { "number", make_json_value<JsonNumber>(3.14) },
-        { "string", make_json_value<JsonString>("hello") },
-        { "object", make_json_value<JsonObject>(
-                JsonObject {
-                { "a", make_json_value<JsonNull>() },
-                { "b", make_json_value<JsonNull>() },
-                })
-        },
-        { "array", make_json_value<JsonArray>(
-                JsonArray {
-                make_json_value<JsonNumber>(834),
-                make_json_value<JsonString>("world"),
-                })
-        },
-        { "null", make_json_value<JsonNull>() },
-    };
+    std::ifstream file("dummy.json");
+    std::stringstream ss;
+    ss << file.rdbuf();
 
-    object.access([](JsonObjectDict& x) {
-        auto ptr = cast_json_value<JsonObject>(x["object"]);
-        ptr->access([](JsonObjectDict& y) {
-            y["a"] = make_json_value<JsonNumber>(34);
-            y["b"] = make_json_value<JsonNumber>(35);
-        });
-    });
+    const auto str = ss.str();
 
-    std::cout << object.serialize() << '\n';
+    auto json = std::get<1>(JsonParser::parse(str));
+
+    // TODO: implement a more friendly and safe way to access values inside json object.
+    // currently you gotta do the "not friendly and unsafe" way lmao :^)
+    json.access([](JsonObjectDict& dict){
+            auto player = cast_json_value<JsonObject>(dict["player"]);
+            player->access([](JsonObjectDict& dict) {
+                    dict["health"] = make_json_value<JsonNumber>(0);
+                    dict["isDead"] = make_json_value<JsonBool>(true);
+                    dict["friends"] = make_json_value<JsonArray>(JsonArray {
+                            make_json_value<JsonString>("asep"),
+                            make_json_value<JsonString>("dadang"),
+                            make_json_value<JsonString>("jajang"),
+                            });
+                    });
+            });
+
+    std::cout << json.serialize() << '\n';
 
     return 0;
 }

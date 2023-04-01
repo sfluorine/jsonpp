@@ -1,0 +1,9 @@
+{
+  "player": {
+    "pos_x": 80,
+    "pos_y": 120,
+    "health": 100,
+    "isDead": false,
+    "friends": null
+  }
+}

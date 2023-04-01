@@ -76,6 +76,8 @@ public:
     JsonString(std::string string)
         : m_string(std::move(string)) {}
 
+    JsonString(const JsonString& other) = delete;
+
     JsonString(JsonString&& other)
         : m_string(std::move(other.m_string)) {}
 
@@ -98,6 +100,8 @@ public:
             m_dict[key] = value;
     }
 
+    JsonObject(const JsonObject& other) = delete;
+
     JsonObject(JsonObject&& other) 
         : m_dict(std::move(other.m_dict)) {}
 
@@ -119,6 +123,8 @@ public:
         for (const auto& elem : list)
             m_array.push_back(elem);
     }
+
+    JsonArray(const JsonArray& other) = delete;
 
     JsonArray(JsonArray&& other)
         : m_array(std::move(other.m_array)) {}

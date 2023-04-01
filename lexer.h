@@ -18,6 +18,8 @@ enum class TokenType {
     BooleanTrue, /* true */
     BooleanFalse, /* false */
 
+    Null, /* null */
+
     EndOfFile,
     Garbage,
 };
@@ -54,16 +56,16 @@ public:
 
     auto type() const -> TokenType;
 
-    auto lexeme() const -> std::string_view;
+    auto lexeme() const -> const std::string&;
 
 private:
     TokenType m_type{TokenType::Garbage};
     std::string m_lexeme;
 };
 
-class Lexer {
+class JsonLexer {
 public:
-    Lexer(std::string_view input)
+    JsonLexer(std::string_view input)
         : m_input(input) {}
 
     auto is_eof() const -> bool;
@@ -76,6 +78,8 @@ private:
     auto get_number_literal() -> Token;
 
     auto get_string_literal() -> Token;
+
+    auto get_null() -> Token;
 
     auto current() const -> char;
 

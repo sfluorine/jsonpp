@@ -24,6 +24,8 @@ auto token_to_string(TokenType type) -> std::string {
         return "true";
     case TokenType::BooleanFalse:
         return "false";
+    case TokenType::Null:
+        return "null";
     case TokenType::EndOfFile:
         return "end of file";
     case TokenType::Garbage:
@@ -49,16 +51,16 @@ auto Token::type() const -> TokenType {
     return m_type;
 }
 
-auto Token::lexeme() const -> std::string_view {
+auto Token::lexeme() const -> const std::string& {
     return m_lexeme;
 }
 
 
-auto Lexer::is_eof() const -> bool {
+auto JsonLexer::is_eof() const -> bool {
     return m_cursor >= m_input.length();
 }
 
-auto Lexer::get_token() -> Token {
+auto JsonLexer::get_token() -> Token {
     skip_whitespaces();
 
     if (is_eof())
@@ -87,6 +89,8 @@ auto Lexer::get_token() -> Token {
         return get_boolean();
     case 'f':
         return get_boolean();
+    case 'n':
+        return get_null();
     case '"':
         return get_string_literal();
     default:
@@ -106,7 +110,7 @@ auto Lexer::get_token() -> Token {
     return Token(TokenType::Garbage, std::move(lexeme));
 }
 
-auto Lexer::get_boolean() -> Token {
+auto JsonLexer::get_boolean() -> Token {
     std::string lexeme;
 
     do {
@@ -123,7 +127,7 @@ auto Lexer::get_boolean() -> Token {
     return Token(TokenType::Garbage, std::move(lexeme));
 }
 
-auto Lexer::get_number_literal() -> Token {
+auto JsonLexer::get_number_literal() -> Token {
     if (not std::isdigit(current())) {
         std::string lexeme;
 
@@ -167,7 +171,7 @@ auto Lexer::get_number_literal() -> Token {
     return Token(TokenType::NumberLiteral, std::move(number));
 }
 
-auto Lexer::get_string_literal() -> Token {
+auto JsonLexer::get_string_literal() -> Token {
     if (current() != '"') {
         std::string lexeme;
 
@@ -198,21 +202,35 @@ auto Lexer::get_string_literal() -> Token {
     return Token(TokenType::StringLiteral, std::move(content));
 }
 
-auto Lexer::current() const -> char {
+auto JsonLexer::get_null() -> Token {
+    std::string lexeme;
+
+    do {
+        lexeme.push_back(current());
+        advance();
+    } while (not is_eof() and std::isalpha(current()));
+
+    if (lexeme != "null")
+        return Token(TokenType::Garbage, std::move(lexeme));
+
+    return Token(TokenType::Null);
+}
+
+auto JsonLexer::current() const -> char {
     if (is_eof())
         return 0;
 
     return m_input[m_cursor];
 }
 
-auto Lexer::advance() -> void {
+auto JsonLexer::advance() -> void {
     if (is_eof())
         return;
 
     m_cursor++;
 }
 
-auto Lexer::skip_whitespaces() -> void {
+auto JsonLexer::skip_whitespaces() -> void {
     while (not is_eof() and std::isspace(current()))
         advance();
 }
