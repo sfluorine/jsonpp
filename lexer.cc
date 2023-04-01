@@ -2,7 +2,7 @@
 
 #include "lexer.h"
 
-auto token_to_string(TokenType type) -> std::string {
+auto token_to_string(TokenType type) -> std::string_view {
     switch (type) {
     case TokenType::OpenCurlyBrace:
         return "{";

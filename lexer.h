@@ -24,7 +24,7 @@ enum class TokenType {
     Garbage,
 };
 
-auto token_to_string(TokenType) -> std::string;
+auto token_to_string(TokenType) -> std::string_view;
 
 class Token {
 public:
