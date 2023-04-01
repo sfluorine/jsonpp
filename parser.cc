@@ -34,6 +34,17 @@ auto JsonParser::eat_token(TokenType type) -> void {
 }
 
 auto JsonParser::parse_json_boolean() -> ErrorOr<JsonBool> {
+    if (not expect(TokenType::BooleanTrue) and not expect(TokenType::BooleanFalse)) {
+        std::string error;
+
+        error.append("ERROR: expected: boolean but got: ");
+        error.append(token_to_string(m_current.type()));
+
+        m_error_stack.push_back(std::move(error));
+
+        return m_error_stack;
+    }
+
     auto result = JsonBool(expect(TokenType::BooleanTrue) ? true : false);
 
     advance();
