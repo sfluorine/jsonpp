@@ -25,9 +25,12 @@ auto main() -> int {
                             make_json_value<JsonString>("dadang"),
                             make_json_value<JsonString>("jajang"),
                             });
+                    dict["pos_x"] = make_json_value<JsonNull>();
+                    dict["pos_y"] = make_json_value<JsonNull>();
                     });
             });
 
+    // TODO: prettify json serializer
     std::cout << json.serialize() << '\n';
 
     return 0;
